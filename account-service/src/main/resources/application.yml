@@ -1,0 +1,34 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: account-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:account_db}
+    username: ${DB_USERNAME:account_user}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  web:
+    locale: en
+    locale-resolver: fixed
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
