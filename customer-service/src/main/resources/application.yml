@@ -16,12 +16,36 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+        # Fail fast when the broker is down; the outbox relay retries later
+        max.block.ms: 5000
+        request.timeout.ms: 4000
+        delivery.timeout.ms: 5000
   jackson:
     deserialization:
       fail-on-unknown-properties: true
   web:
     locale: en
     locale-resolver: fixed
+
+app:
+  outbox:
+    relay-delay-ms: ${OUTBOX_RELAY_DELAY_MS:1000}
+    batch-size: ${OUTBOX_BATCH_SIZE:100}
+    send-timeout: ${OUTBOX_SEND_TIMEOUT:10s}
+  kafka:
+    customer-events:
+      topic: ${CUSTOMER_EVENTS_TOPIC:customer-events}
+      partitions: 3
+      replicas: 1
+
+logging:
+  level:
+    # The outbox relay already logs failed sends by event id; this listener would also log the payload
+    org.springframework.kafka.support.LoggingProducerListener: OFF
 
 management:
   endpoints:
