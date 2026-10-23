@@ -1,1 +1,7 @@
-databaseChangeLog: []
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/20261023-01-create-customer-snapshot.sql
+  - include:
+      file: db/changelog/changes/20261023-02-create-account.sql
+  - include:
+      file: db/changelog/changes/20261023-03-create-processed-event.sql

@@ -78,6 +78,31 @@ curl -i -X POST http://localhost:8081/api/v1/customers \
 - `409` is returned for a duplicated identification and when another request changed the same
   customer at the same time (optimistic locking).
 
+### Accounts — `account-service` (port 8082)
+
+| Method | Path | Description | Responses |
+|---|---|---|---|
+| `POST` | `/api/v1/accounts` | Open an account for an active customer | `201` + `Location`, `400`, `409`, `422` |
+| `GET` | `/api/v1/accounts?customerId=&page=0&size=20` | List accounts ordered by number, optionally of one customer | `200`, `400` |
+| `GET` | `/api/v1/accounts/{accountNumber}` | Get an account | `200`, `400`, `404` |
+| `PUT` | `/api/v1/accounts/{accountNumber}` | Replace the account type and status | `200`, `400`, `404`, `422` |
+| `PATCH` | `/api/v1/accounts/{accountNumber}` | Change the account type or status | `200`, `400`, `404`, `422` |
+
+```bash
+curl -i -X POST http://localhost:8082/api/v1/accounts \
+  -H "Content-Type: application/json" \
+  -d '{"accountNumber":"478758","accountType":"SAVINGS","initialBalance":2000,
+       "customerId":"<customerId returned by customer-service>"}'
+```
+
+- `accountNumber` (6–20 digits) is chosen by the client and identifies the account in the URL.
+- `accountType`: `SAVINGS` or `CHECKING`. `initialBalance` ≥ 0 with up to 2 decimals; `balance`
+  starts equal to it.
+- Account number, customer and initial balance cannot change after opening.
+- `422` means the customer is unknown to `account-service`, not active, or an account of an inactive
+  customer was being activated.
+- Accounts are not deleted (the challenge asks for create, read and update).
+
 ## Events
 
 `customer-service` publishes every change on the `customer-events` topic (3 partitions). The key is
@@ -96,6 +121,22 @@ the `customerId`, so all events of one customer keep their order.
 `eventType` is `CUSTOMER_CREATED`, `CUSTOMER_UPDATED` or `CUSTOMER_DELETED`. Events carry only the
 data other services need: no identification, contact data or password.
 
+`account-service` consumes them (consumer group `account-service`):
+
+| Event | Effect in `account-service` |
+|---|---|
+| `CUSTOMER_CREATED` / `CUSTOMER_UPDATED` | Creates or replaces the local copy of the customer (`customer_snapshot`) |
+| `CUSTOMER_DELETED` | Marks the customer inactive and deactivates all its accounts |
+
+- A repeated event (same `eventId`) is ignored; an event older than the last one applied is ignored.
+- Invalid messages go straight to `customer-events.DLT`; other failures are retried 3 times (1 s
+  apart) and then sent to the same dead-letter topic.
+
+```bash
+docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 --topic customer-events.DLT --from-beginning --property print.key=true
+```
+
 ## Configuration
 
 Each service reads its configuration from environment variables (defaults point to the ports
@@ -109,10 +150,14 @@ infrastructure).
 | `DB_USERNAME` | Database user | `customer_user` / `account_user` |
 | `DB_PASSWORD` | Database password | none (required) |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka brokers | `localhost:9094` |
-| `CUSTOMER_EVENTS_TOPIC` | Topic for customer events (customer-service) | `customer-events` |
+| `CUSTOMER_EVENTS_TOPIC` | Topic for customer events (both services) | `customer-events` |
 | `OUTBOX_RELAY_DELAY_MS` | Pause between outbox relay runs (customer-service) | `1000` |
 | `OUTBOX_BATCH_SIZE` | Maximum events sent per relay run (customer-service) | `100` |
 | `OUTBOX_SEND_TIMEOUT` | Maximum wait for the broker per event (customer-service) | `10s` |
+| `KAFKA_CONSUMER_GROUP` | Consumer group (account-service) | `account-service` |
+| `CUSTOMER_EVENTS_DLT` | Dead-letter topic (account-service) | `customer-events.DLT` |
+| `CUSTOMER_EVENTS_RETRY_ATTEMPTS` | Retries before sending a message to the DLT (account-service) | `3` |
+| `CUSTOMER_EVENTS_RETRY_INTERVAL` | Pause between retries (account-service) | `1s` |
 
 Host ports used by Compose can be changed in `.env` (see `.env.example`).
 

@@ -16,12 +16,31 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:account-service}
+      auto-offset-reset: earliest
+    listener:
+      ack-mode: record
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
   jackson:
     deserialization:
       fail-on-unknown-properties: true
   web:
     locale: en
     locale-resolver: fixed
+
+app:
+  kafka:
+    customer-events:
+      topic: ${CUSTOMER_EVENTS_TOPIC:customer-events}
+      dead-letter-topic: ${CUSTOMER_EVENTS_DLT:customer-events.DLT}
+      partitions: 3
+      replicas: 1
+      retry-attempts: ${CUSTOMER_EVENTS_RETRY_ATTEMPTS:3}
+      retry-interval: ${CUSTOMER_EVENTS_RETRY_INTERVAL:1s}
 
 management:
   endpoints:
