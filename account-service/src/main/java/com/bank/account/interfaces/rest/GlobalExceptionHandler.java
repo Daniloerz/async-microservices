@@ -12,6 +12,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -21,7 +22,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.bank.account.application.exception.AccountNotAvailableException;
 import com.bank.account.application.exception.AccountNotFoundException;
 import com.bank.account.application.exception.CustomerNotAvailableException;
+import com.bank.account.application.exception.CustomerNotFoundException;
 import com.bank.account.application.exception.DuplicateAccountNumberException;
+import com.bank.account.application.exception.InvalidReportPeriodException;
 import com.bank.account.application.exception.MovementNotCorrectableException;
 import com.bank.account.application.exception.MovementNotFoundException;
 import com.bank.account.domain.exception.AccountActivationNotAllowedException;
@@ -41,7 +44,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final String ERRORS_PROPERTY = "errors";
     private static final String VALIDATION_FAILED = "Request validation failed";
 
-    @ExceptionHandler({ AccountNotFoundException.class, MovementNotFoundException.class })
+    @ExceptionHandler(InvalidReportPeriodException.class)
+    ResponseEntity<Object> handleInvalidReportPeriod(InvalidReportPeriodException exception) {
+        return badRequest(VALIDATION_FAILED,
+                List.of(new FieldErrorResponse(exception.getField(), exception.getMessage())));
+    }
+
+    @ExceptionHandler({ AccountNotFoundException.class, MovementNotFoundException.class,
+            CustomerNotFoundException.class })
     ProblemDetail handleNotFound(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
@@ -81,6 +91,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                 messageOf(error))))
                 .toList();
         return badRequest(VALIDATION_FAILED, errors);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException exception, HttpHeaders headers, HttpStatusCode status,
+            WebRequest request) {
+        return badRequest("Required parameter '%s' is missing".formatted(exception.getParameterName()),
+                List.of(new FieldErrorResponse(exception.getParameterName(), "is required")));
     }
 
     @Override

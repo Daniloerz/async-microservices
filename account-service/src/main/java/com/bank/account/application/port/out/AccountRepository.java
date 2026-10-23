@@ -1,5 +1,7 @@
 package com.bank.account.application.port.out;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +16,8 @@ public interface AccountRepository {
     Optional<Account> findForUpdate(String accountNumber);
 
     PageResult<Account> findAll(UUID customerId, int page, int size);
+
+    List<Account> findAllOfCustomerOpenedBefore(UUID customerId, Instant before);
 
     boolean existsByAccountNumber(String accountNumber);
 

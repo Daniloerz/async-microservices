@@ -1,5 +1,8 @@
 package com.bank.account.infrastructure.persistence;
 
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,6 +54,21 @@ public class MovementPersistenceAdapter implements MovementRepository {
                 ? movementJpaRepository.findAll(pageable)
                 : movementJpaRepository.findAllByAccountNumber(accountNumber, pageable);
         return new PageResult<>(result.getContent(), page, size, result.getTotalElements(), result.getTotalPages())
+                .map(movementEntityMapper::toDomain);
+    }
+
+    @Override
+    public List<Movement> findOfAccountsBetween(Collection<String> accountNumbers, Instant fromInclusive,
+            Instant toExclusive) {
+        return movementJpaRepository.findOfAccountsBetween(accountNumbers, fromInclusive, toExclusive).stream()
+                .map(movementEntityMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<Movement> findLastBefore(String accountNumber, Instant before) {
+        return movementJpaRepository
+                .findFirstByAccountNumberAndMovementDateBeforeOrderByMovementDateDescIdDesc(accountNumber, before)
                 .map(movementEntityMapper::toDomain);
     }
 

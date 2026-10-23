@@ -1,5 +1,7 @@
 package com.bank.account.infrastructure.persistence;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -68,6 +70,14 @@ public class AccountPersistenceAdapter implements AccountRepository {
                 : accountJpaRepository.findAllByCustomerId(customerId, pageable);
         return new PageResult<>(result.getContent(), page, size, result.getTotalElements(), result.getTotalPages())
                 .map(accountEntityMapper::toDomain);
+    }
+
+    @Override
+    public List<Account> findAllOfCustomerOpenedBefore(UUID customerId, Instant before) {
+        return accountJpaRepository.findAllByCustomerIdAndCreatedAtBeforeOrderByAccountNumberAsc(customerId, before)
+                .stream()
+                .map(accountEntityMapper::toDomain)
+                .toList();
     }
 
     @Override

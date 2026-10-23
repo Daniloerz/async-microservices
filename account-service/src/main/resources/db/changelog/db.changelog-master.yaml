@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changes/20261023-04-add-account-balance-check.sql
   - include:
       file: db/changelog/changes/20261023-05-create-movement.sql
+  - include:
+      file: db/changelog/changes/20261023-06-add-movement-date-index.sql

@@ -1,5 +1,7 @@
 package com.bank.account.infrastructure.persistence;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +26,8 @@ public interface AccountJpaRepository extends JpaRepository<AccountEntity, Long>
     boolean existsByAccountNumber(String accountNumber);
 
     Page<AccountEntity> findAllByCustomerId(UUID customerId, Pageable pageable);
+
+    List<AccountEntity> findAllByCustomerIdAndCreatedAtBeforeOrderByAccountNumberAsc(UUID customerId, Instant before);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """

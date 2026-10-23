@@ -41,6 +41,9 @@ app:
       replicas: 1
       retry-attempts: ${CUSTOMER_EVENTS_RETRY_ATTEMPTS:3}
       retry-interval: ${CUSTOMER_EVENTS_RETRY_INTERVAL:1s}
+  reports:
+    time-zone: ${REPORT_TIME_ZONE:America/Guayaquil}
+    max-range-days: ${REPORT_MAX_RANGE_DAYS:366}
 
 management:
   endpoints:

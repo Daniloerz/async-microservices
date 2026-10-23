@@ -138,6 +138,63 @@ curl -i -X POST http://localhost:8082/api/v1/movements \
   (`409` otherwise); movements are never deleted, so there is no `PATCH` or `DELETE`.
 - The date is set by the server (database clock) when the movement is registered.
 
+### Account statement report — `account-service` (port 8082)
+
+| Method | Path | Description | Responses |
+|---|---|---|---|
+| `GET` | `/api/v1/reports?customerId=&startDate=&endDate=` | Account statement of a customer for a date range (ISO dates, both included) | `200`, `400`, `404` |
+
+```bash
+curl "http://localhost:8082/api/v1/reports?customerId=<customerId>&startDate=2026-10-01&endDate=2026-10-31"
+```
+
+```json
+{
+  "customer": { "customerId": "…", "name": "Marianela Montalvo", "active": true },
+  "startDate": "2026-10-23",
+  "endDate": "2026-10-23",
+  "timeZone": "America/Guayaquil",
+  "accounts": [
+    {
+      "accountNumber": "225487",
+      "accountType": "CHECKING",
+      "active": true,
+      "initialBalance": 100.00,
+      "openingBalance": 100.00,
+      "closingBalance": 700.00,
+      "availableBalance": 700.00,
+      "totalDeposits": 600.00,
+      "totalWithdrawals": 0.00,
+      "movements": [
+        { "movementId": "…", "movementDate": "2026-10-23T22:10:00.123Z", "movementType": "DEPOSIT",
+          "amount": 600.00, "balance": 700.00 }
+      ]
+    }
+  ]
+}
+```
+
+- The statement lists every account the customer had during the period (also inactive ones and
+  accounts without movements) with the balance at the start of the period, at the end of the
+  period, the current available balance, the period totals and the movements of the period.
+- Days are cut in the configured time zone (`REPORT_TIME_ZONE`, default `America/Guayaquil`);
+  periods are limited to `REPORT_MAX_RANGE_DAYS` (default 366) days.
+- The whole report is read in one `REPEATABLE READ` read-only transaction, so it is consistent even
+  while movements are being registered.
+
+How the challenge's example columns map to the report:
+
+| Challenge column | Report field |
+|---|---|
+| Fecha | `accounts[].movements[].movementDate` |
+| Cliente | `customer.name` |
+| Numero Cuenta | `accounts[].accountNumber` |
+| Tipo | `accounts[].accountType` |
+| Saldo Inicial | `accounts[].initialBalance` |
+| Estado | `accounts[].active` |
+| Movimiento | `accounts[].movements[].amount` |
+| Saldo Disponible | `accounts[].movements[].balance` |
+
 ## Events
 
 `customer-service` publishes every change on the `customer-events` topic (3 partitions). The key is
@@ -193,6 +250,8 @@ infrastructure).
 | `CUSTOMER_EVENTS_DLT` | Dead-letter topic (account-service) | `customer-events.DLT` |
 | `CUSTOMER_EVENTS_RETRY_ATTEMPTS` | Retries before sending a message to the DLT (account-service) | `3` |
 | `CUSTOMER_EVENTS_RETRY_INTERVAL` | Pause between retries (account-service) | `1s` |
+| `REPORT_TIME_ZONE` | Time zone used to cut report days (account-service) | `America/Guayaquil` |
+| `REPORT_MAX_RANGE_DAYS` | Longest report period in days (account-service) | `366` |
 
 Host ports used by Compose can be changed in `.env` (see `.env.example`).
 
