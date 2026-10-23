@@ -5,3 +5,7 @@ databaseChangeLog:
       file: db/changelog/changes/20261023-02-create-account.sql
   - include:
       file: db/changelog/changes/20261023-03-create-processed-event.sql
+  - include:
+      file: db/changelog/changes/20261023-04-add-account-balance-check.sql
+  - include:
+      file: db/changelog/changes/20261023-05-create-movement.sql

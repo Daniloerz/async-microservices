@@ -18,10 +18,15 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.bank.account.application.exception.AccountNotAvailableException;
 import com.bank.account.application.exception.AccountNotFoundException;
 import com.bank.account.application.exception.CustomerNotAvailableException;
 import com.bank.account.application.exception.DuplicateAccountNumberException;
+import com.bank.account.application.exception.MovementNotCorrectableException;
+import com.bank.account.application.exception.MovementNotFoundException;
 import com.bank.account.domain.exception.AccountActivationNotAllowedException;
+import com.bank.account.domain.exception.InactiveAccountException;
+import com.bank.account.domain.exception.InsufficientBalanceException;
 import com.bank.account.interfaces.rest.dto.FieldErrorResponse;
 
 import lombok.extern.slf4j.Slf4j;
@@ -36,17 +41,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final String ERRORS_PROPERTY = "errors";
     private static final String VALIDATION_FAILED = "Request validation failed";
 
-    @ExceptionHandler(AccountNotFoundException.class)
-    ProblemDetail handleAccountNotFound(AccountNotFoundException exception) {
+    @ExceptionHandler({ AccountNotFoundException.class, MovementNotFoundException.class })
+    ProblemDetail handleNotFound(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
-    @ExceptionHandler(DuplicateAccountNumberException.class)
-    ProblemDetail handleDuplicateAccountNumber(DuplicateAccountNumberException exception) {
+    @ExceptionHandler({ DuplicateAccountNumberException.class, MovementNotCorrectableException.class })
+    ProblemDetail handleConflict(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
     }
 
-    @ExceptionHandler({ CustomerNotAvailableException.class, AccountActivationNotAllowedException.class })
+    @ExceptionHandler({ CustomerNotAvailableException.class, AccountActivationNotAllowedException.class,
+            AccountNotAvailableException.class, InactiveAccountException.class, InsufficientBalanceException.class })
     ProblemDetail handleUnprocessable(RuntimeException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage());
     }

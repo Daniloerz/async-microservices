@@ -103,6 +103,41 @@ curl -i -X POST http://localhost:8082/api/v1/accounts \
   customer was being activated.
 - Accounts are not deleted (the challenge asks for create, read and update).
 
+### Movements — `account-service` (port 8082)
+
+| Method | Path | Description | Responses |
+|---|---|---|---|
+| `POST` | `/api/v1/movements` | Register a deposit (positive amount) or a withdrawal (negative amount) | `201` + `Location`, `400`, `422` |
+| `GET` | `/api/v1/movements?accountNumber=&page=0&size=20` | List movements from newest to oldest, optionally of one account | `200`, `400` |
+| `GET` | `/api/v1/movements/{movementId}` | Get a movement | `200`, `400`, `404` |
+| `PUT` | `/api/v1/movements/{movementId}` | Correct the amount of the last movement of its account | `200`, `400`, `404`, `409`, `422` |
+
+```bash
+curl -i -X POST http://localhost:8082/api/v1/movements \
+  -H "Content-Type: application/json" \
+  -d '{"accountNumber":"478758","amount":-575}'
+```
+
+```json
+{
+  "movementId": "6b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  "accountNumber": "478758",
+  "movementType": "WITHDRAWAL",
+  "amount": -575.00,
+  "balance": 1425.00,
+  "movementDate": "2026-10-23T22:10:00.123456Z"
+}
+```
+
+- The type (`DEPOSIT` / `WITHDRAWAL`) comes from the sign of `amount`; `amount` cannot be 0.
+- `balance` is the account balance right after the movement; the account balance is updated in the
+  same transaction.
+- A movement that would leave the balance below zero is rejected with `422` and
+  `"detail": "Insufficient balance"` (the challenge's "Saldo no disponible"); nothing is saved.
+- Inactive or unknown accounts get `422`. Only the last movement of an account can be corrected
+  (`409` otherwise); movements are never deleted, so there is no `PATCH` or `DELETE`.
+- The date is set by the server (database clock) when the movement is registered.
+
 ## Events
 
 `customer-service` publishes every change on the `customer-events` topic (3 partitions). The key is

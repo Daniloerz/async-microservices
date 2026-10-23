@@ -1,12 +1,13 @@
 package com.bank.account.domain.model;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
 import com.bank.account.domain.exception.AccountActivationNotAllowedException;
+import com.bank.account.domain.exception.InactiveAccountException;
+import com.bank.account.domain.exception.InsufficientBalanceException;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -16,13 +17,11 @@ import lombok.ToString;
 @ToString
 public class Account {
 
-    public static final int MONEY_SCALE = 2;
-
     private final Long id;
     private final String accountNumber;
     private AccountType accountType;
     private final BigDecimal initialBalance;
-    private final BigDecimal balance;
+    private BigDecimal balance;
     private boolean active;
     private final UUID customerId;
     private final Instant createdAt;
@@ -34,8 +33,8 @@ public class Account {
         this.id = id;
         this.accountNumber = Objects.requireNonNull(accountNumber, "accountNumber");
         this.accountType = Objects.requireNonNull(accountType, "accountType");
-        this.initialBalance = toMoney(Objects.requireNonNull(initialBalance, "initialBalance"));
-        this.balance = toMoney(Objects.requireNonNull(balance, "balance"));
+        this.initialBalance = Money.of(Objects.requireNonNull(initialBalance, "initialBalance"));
+        this.balance = Money.of(Objects.requireNonNull(balance, "balance"));
         this.active = active;
         this.customerId = Objects.requireNonNull(customerId, "customerId");
         this.createdAt = createdAt;
@@ -66,7 +65,37 @@ public class Account {
         this.active = false;
     }
 
-    private static BigDecimal toMoney(BigDecimal amount) {
-        return amount.setScale(MONEY_SCALE, RoundingMode.UNNECESSARY);
+    public Movement registerMovement(BigDecimal amount) {
+        ensureActive();
+        BigDecimal newBalance = balanceAfter(balance, amount);
+        this.balance = newBalance;
+        return Movement.record(accountNumber, amount, newBalance);
+    }
+
+    public void correctMovement(Movement lastMovement, BigDecimal newAmount) {
+        if (!accountNumber.equals(lastMovement.getAccountNumber())) {
+            throw new IllegalArgumentException("Movement does not belong to this account");
+        }
+        ensureActive();
+        BigDecimal newBalance = balanceAfter(lastMovement.balanceBefore(), newAmount);
+        lastMovement.correct(newAmount, newBalance);
+        this.balance = newBalance;
+    }
+
+    private void ensureActive() {
+        if (!active) {
+            throw new InactiveAccountException();
+        }
+    }
+
+    private static BigDecimal balanceAfter(BigDecimal startingBalance, BigDecimal amount) {
+        if (amount.signum() == 0) {
+            throw new IllegalArgumentException("Movement amount must not be zero");
+        }
+        BigDecimal result = Money.of(startingBalance.add(amount));
+        if (result.signum() < 0) {
+            throw new InsufficientBalanceException();
+        }
+        return result;
     }
 }
