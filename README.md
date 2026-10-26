@@ -8,6 +8,23 @@ other asynchronously through Kafka.
 | `customer-service` | Persons and customers | 8081 |
 | `account-service` | Accounts, movements and account statement reports | 8082 |
 
+## Challenge checklist
+
+| Requirement | Where |
+|---|---|
+| Two microservices: (Customer, Person) and (Account, Movement), communicating asynchronously | `customer-service`, `account-service`, Kafka topic `customer-events` |
+| JPA entities; `Customer` inherits from `Person` | `customer-service/.../infrastructure/persistence` (`JOINED` inheritance) |
+| Exception handling | `GlobalExceptionHandler` in each service, RFC 9457 Problem Details |
+| F1 — CRUD customers, CRU accounts and movements | `/api/v1/customers`, `/api/v1/accounts`, `/api/v1/movements` (GET, POST, PUT, PATCH, DELETE where they apply) |
+| F2 — movements update the available balance and are recorded | `POST /api/v1/movements` |
+| F3 — "Saldo no disponible" | `422` with `"detail": "Insufficient balance"` |
+| F4 — account statement by date range and customer, JSON | `GET /api/v1/reports?customerId=&startDate=&endDate=` |
+| F5 — unit test of the `Customer` domain entity | `customer-service/src/test/.../domain/model/CustomerTest.java` |
+| F6 — integration tests | `CustomerApiIntegrationTest`, `CustomerEventFlowIntegrationTest`, `MovementApiIntegrationTest`, `ReportApiIntegrationTest` and others (Testcontainers) |
+| F7 — deployment in containers | `docker-compose.yml` and a `Dockerfile` per service |
+| Database scripts | Liquibase SQL changesets (see [Database scripts](#database-scripts)) |
+| Postman collection | [`postman/async-microservices.postman_collection.json`](postman/async-microservices.postman_collection.json) |
+
 ## Architecture
 
 ```text
@@ -39,7 +56,11 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Compose refuses to start while the database passwords are empty.
+Compose refuses to start while the database passwords are empty. The first build downloads the Maven
+dependencies inside the build image and takes a few minutes.
+
+To stop everything and keep the data, run `docker compose stop`; to also delete all data, run
+`docker compose down -v`.
 
 Health checks:
 
@@ -229,6 +250,54 @@ docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic customer-events.DLT --from-beginning --property print.key=true
 ```
 
+## Postman collection
+
+[`postman/async-microservices.postman_collection.json`](postman/async-microservices.postman_collection.json)
+(Collection v2.1, works with Postman v9.13.2 and later).
+
+1. Start the system with Docker Compose.
+2. Import the file in Postman.
+3. Run the whole collection with the **Collection Runner**, in order.
+
+| Folder | Content |
+|---|---|
+| 0. Health | Both services are up |
+| 1. Customers (use case 1) | Jose Lema, Marianela Montalvo and Juan Osorio; get, list, PUT and PATCH |
+| 2. Accounts (use cases 2 and 3) | Accounts 478758, 225487, 495878, 496825 and the new checking account 585545 of Jose Lema |
+| 3. Movements (use case 4) | Withdrawal 575, deposit 600, deposit 150, withdrawal 540; correction of the last movement |
+| 4. Account statement report (use case 5) | Statement of Marianela Montalvo for today |
+| 5. Error cases | Insufficient balance, validation errors, conflicts, unknown resources, invalid period |
+| 6. Asynchronous flow | Deleting a customer deactivates its accounts through Kafka |
+
+Every request has tests (`pm.test`). Identifications and account numbers get a random suffix per
+run (for example `478758` becomes `478758NNNNNN`), so the collection can run many times without
+resetting the databases. The base URLs are the collection variables `customerBaseUrl` and
+`accountBaseUrl`. A few requests retry for a moment because the customer data reaches
+`account-service` asynchronously.
+
+It can also run from the command line with Newman:
+
+```bash
+docker run --rm --network host -v "$(pwd)/postman":/etc/newman postman/newman:6-alpine \
+  run async-microservices.postman_collection.json
+```
+
+(`--network host` works on Linux; elsewhere, install Newman with `npm install -g newman` and run
+`newman run postman/async-microservices.postman_collection.json`.)
+
+## Database scripts
+
+Each service owns its database and creates its schema at startup with Liquibase. The scripts are
+plain SQL files:
+
+| Database | Scripts |
+|---|---|
+| `customer_db` | [`customer-service/src/main/resources/db/changelog/changes`](customer-service/src/main/resources/db/changelog/changes) — `person`, `customer`, `outbox_event` |
+| `account_db` | [`account-service/src/main/resources/db/changelog/changes`](account-service/src/main/resources/db/changelog/changes) — `customer_snapshot`, `account`, `processed_event`, `movement` |
+
+They are applied in the order of each `db.changelog-master.yaml`. There is no seed data: the
+Postman collection creates the challenge data.
+
 ## Configuration
 
 Each service reads its configuration from environment variables (defaults point to the ports
@@ -257,10 +326,18 @@ Host ports used by Compose can be changed in `.env` (see `.env.example`).
 
 ## Tests
 
-Each service is an independent Maven project. Integration tests use Testcontainers, so Docker must
-be running.
+Each service is an independent Maven project with its own Maven Wrapper (Java 21 required).
+Integration tests use Testcontainers, so Docker must be running.
 
 ```bash
 cd customer-service && ./mvnw clean test
 cd account-service && ./mvnw clean test
 ```
+
+| Type | What it covers | Examples |
+|---|---|---|
+| Unit | Domain rules and use cases, with Mockito | `CustomerTest`, `AccountMovementTest`, `RegisterMovementUseCaseTest` |
+| Web slice (`@WebMvcTest`) | Validation, status codes and Problem Details | `CustomerControllerTest`, `MovementControllerTest` |
+| Integration (Testcontainers: PostgreSQL 17 and Kafka) | Persistence, constraints, outbox, Kafka consumer and dead-letter topic, concurrent withdrawals, report date boundaries | `CustomerApiIntegrationTest`, `CustomerEventFlowIntegrationTest`, `MovementApiIntegrationTest`, `ReportApiIntegrationTest` |
+
+End-to-end validation of the running system is done with the Postman collection.

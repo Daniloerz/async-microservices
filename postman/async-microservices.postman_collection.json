@@ -1,0 +1,1410 @@
+{
+  "info": {
+    "_postman_id": "6f0f3b52-2a52-4f1c-9a0d-3c8d2f5b7e11",
+    "name": "async-microservices",
+    "description": "Validation of the customer-service and account-service APIs. Run the whole collection in order (Collection Runner or Newman) with both services up (docker compose up). Folders 1 to 4 follow the challenge use cases; identifications and account numbers get a random suffix per run so the collection can be run many times.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "customer-service health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{customerBaseUrl}}/actuator/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"service is UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "account-service health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/actuator/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"service is UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Customers (use case 1)",
+      "item": [
+        {
+          "name": "Create customer Jose Lema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jose Lema\",\n  \"gender\": \"MALE\",\n  \"age\": 35,\n  \"identification\": \"1712345678{{runSuffix}}\",\n  \"address\": \"Otavalo sn y principal\",\n  \"phone\": \"098254785\",\n  \"password\": \"1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = String(Math.floor(100000 + Math.random() * 900000));",
+                  "pm.collectionVariables.set(\"runSuffix\", suffix);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const customer = pm.response.json();",
+                  "pm.test(\"name is Jose Lema\", () => pm.expect(customer.name).to.eql(\"Jose Lema\"));",
+                  "pm.test(\"password is never returned\", () => pm.expect(customer).to.not.have.property(\"password\"));",
+                  "pm.test(\"Location header points to the customer\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(customer.customerId));",
+                  "pm.collectionVariables.set(\"joseId\", customer.customerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create customer Marianela Montalvo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Marianela Montalvo\",\n  \"gender\": \"FEMALE\",\n  \"age\": 30,\n  \"identification\": \"1700000002{{runSuffix}}\",\n  \"address\": \"Amazonas y NNUU\",\n  \"phone\": \"097548965\",\n  \"password\": \"5678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const customer = pm.response.json();",
+                  "pm.test(\"name is Marianela Montalvo\", () => pm.expect(customer.name).to.eql(\"Marianela Montalvo\"));",
+                  "pm.test(\"password is never returned\", () => pm.expect(customer).to.not.have.property(\"password\"));",
+                  "pm.test(\"Location header points to the customer\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(customer.customerId));",
+                  "pm.collectionVariables.set(\"marianelaId\", customer.customerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create customer Juan Osorio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Osorio\",\n  \"gender\": \"MALE\",\n  \"age\": 40,\n  \"identification\": \"1700000003{{runSuffix}}\",\n  \"address\": \"13 junio y Equinoccial\",\n  \"phone\": \"098874587\",\n  \"password\": \"1245\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const customer = pm.response.json();",
+                  "pm.test(\"name is Juan Osorio\", () => pm.expect(customer.name).to.eql(\"Juan Osorio\"));",
+                  "pm.test(\"password is never returned\", () => pm.expect(customer).to.not.have.property(\"password\"));",
+                  "pm.test(\"Location header points to the customer\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(customer.customerId));",
+                  "pm.collectionVariables.set(\"juanId\", customer.customerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get customer Jose Lema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{customerBaseUrl}}/api/v1/customers/{{joseId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"it is Jose Lema\", () => pm.expect(pm.response.json().name).to.eql(\"Jose Lema\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{customerBaseUrl}}/api/v1/customers?page=0&size=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"page has customers\", () => pm.expect(pm.response.json().totalElements).to.be.above(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace customer Juan Osorio (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers/{{juanId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Osorio\",\n  \"gender\": \"MALE\",\n  \"age\": 41,\n  \"identification\": \"1700000003{{runSuffix}}\",\n  \"address\": \"13 junio y Equinoccial\",\n  \"phone\": \"098874587\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"age was replaced\", () => pm.expect(pm.response.json().age).to.eql(41));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partial update customer Juan Osorio (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers/{{juanId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0988745870\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"only the phone changed\", () => { const c = pm.response.json(); pm.expect(c.phone).to.eql(\"0988745870\"); pm.expect(c.age).to.eql(41); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Accounts (use cases 2 and 3)",
+      "item": [
+        {
+          "name": "Create account 478758 for Jose Lema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "description": "The customer reaches account-service through Kafka a few milliseconds after it is created; this request retries while the service still answers 422.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"478758{{runSuffix}}\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 2000,\n  \"customerId\": \"{{joseId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = pm.collectionVariables.get(\"projectionAttempt\") || 0;",
+                  "if (attempt > 0) {",
+                  "    setTimeout(() => {}, 1000);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = Number(pm.collectionVariables.get(\"projectionAttempt\") || 0);",
+                  "if (pm.response.code === 422 && attempt < 15) {",
+                  "    pm.collectionVariables.set(\"projectionAttempt\", attempt + 1);",
+                  "    postman.setNextRequest(pm.info.requestName);",
+                  "} else {",
+                  "    pm.collectionVariables.unset(\"projectionAttempt\");",
+                  "    pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "    const account = pm.response.json();",
+                  "    pm.test(\"balance starts at 2000\", () => pm.expect(account.balance).to.eql(2000));",
+                  "    pm.test(\"type is SAVINGS\", () => pm.expect(account.accountType).to.eql(\"SAVINGS\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account 225487 for Marianela Montalvo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "description": "The customer reaches account-service through Kafka a few milliseconds after it is created; this request retries while the service still answers 422.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"225487{{runSuffix}}\",\n  \"accountType\": \"CHECKING\",\n  \"initialBalance\": 100,\n  \"customerId\": \"{{marianelaId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = pm.collectionVariables.get(\"projectionAttempt\") || 0;",
+                  "if (attempt > 0) {",
+                  "    setTimeout(() => {}, 1000);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = Number(pm.collectionVariables.get(\"projectionAttempt\") || 0);",
+                  "if (pm.response.code === 422 && attempt < 15) {",
+                  "    pm.collectionVariables.set(\"projectionAttempt\", attempt + 1);",
+                  "    postman.setNextRequest(pm.info.requestName);",
+                  "} else {",
+                  "    pm.collectionVariables.unset(\"projectionAttempt\");",
+                  "    pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "    const account = pm.response.json();",
+                  "    pm.test(\"balance starts at 100\", () => pm.expect(account.balance).to.eql(100));",
+                  "    pm.test(\"type is CHECKING\", () => pm.expect(account.accountType).to.eql(\"CHECKING\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account 495878 for Juan Osorio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "description": "The customer reaches account-service through Kafka a few milliseconds after it is created; this request retries while the service still answers 422.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"495878{{runSuffix}}\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 0,\n  \"customerId\": \"{{juanId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = pm.collectionVariables.get(\"projectionAttempt\") || 0;",
+                  "if (attempt > 0) {",
+                  "    setTimeout(() => {}, 1000);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = Number(pm.collectionVariables.get(\"projectionAttempt\") || 0);",
+                  "if (pm.response.code === 422 && attempt < 15) {",
+                  "    pm.collectionVariables.set(\"projectionAttempt\", attempt + 1);",
+                  "    postman.setNextRequest(pm.info.requestName);",
+                  "} else {",
+                  "    pm.collectionVariables.unset(\"projectionAttempt\");",
+                  "    pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "    const account = pm.response.json();",
+                  "    pm.test(\"balance starts at 0\", () => pm.expect(account.balance).to.eql(0));",
+                  "    pm.test(\"type is SAVINGS\", () => pm.expect(account.accountType).to.eql(\"SAVINGS\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account 496825 for Marianela Montalvo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"496825{{runSuffix}}\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 540,\n  \"customerId\": \"{{marianelaId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const account = pm.response.json();",
+                  "pm.test(\"balance starts at 540\", () => pm.expect(account.balance).to.eql(540));",
+                  "pm.test(\"type is SAVINGS\", () => pm.expect(account.accountType).to.eql(\"SAVINGS\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account 585545 for Jose Lema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"585545{{runSuffix}}\",\n  \"accountType\": \"CHECKING\",\n  \"initialBalance\": 1000,\n  \"customerId\": \"{{joseId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const account = pm.response.json();",
+                  "pm.test(\"balance starts at 1000\", () => pm.expect(account.balance).to.eql(1000));",
+                  "pm.test(\"type is CHECKING\", () => pm.expect(account.accountType).to.eql(\"CHECKING\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get account 478758",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/accounts/478758{{runSuffix}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"belongs to Jose Lema\", () => pm.expect(pm.response.json().customerId).to.eql(pm.collectionVariables.get(\"joseId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List accounts of Marianela Montalvo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/accounts?customerId={{marianelaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"she has 2 accounts\", () => pm.expect(pm.response.json().content.length).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Partial update account 495878 (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts/495878{{runSuffix}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"SAVINGS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"still active\", () => pm.expect(pm.response.json().active).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Account numbers get the run suffix so the collection can run many times (478758 becomes 478758NNNNNN)."
+    },
+    {
+      "name": "3. Movements (use case 4)",
+      "item": [
+        {
+          "name": "Withdrawal of 575 on 478758",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"478758{{runSuffix}}\",\n  \"amount\": -575\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is WITHDRAWAL\", () => pm.expect(movement.movementType).to.eql(\"WITHDRAWAL\"));",
+                  "pm.test(\"balance after the movement is 1425\", () => pm.expect(movement.balance).to.eql(1425));",
+                  "pm.collectionVariables.set(\"joseMovementId\", movement.movementId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit of 600 on 225487",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"225487{{runSuffix}}\",\n  \"amount\": 600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is DEPOSIT\", () => pm.expect(movement.movementType).to.eql(\"DEPOSIT\"));",
+                  "pm.test(\"balance after the movement is 700\", () => pm.expect(movement.balance).to.eql(700));",
+                  "pm.collectionVariables.set(\"marianelaDepositId\", movement.movementId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit of 150 on 495878",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"495878{{runSuffix}}\",\n  \"amount\": 150\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is DEPOSIT\", () => pm.expect(movement.movementType).to.eql(\"DEPOSIT\"));",
+                  "pm.test(\"balance after the movement is 150\", () => pm.expect(movement.balance).to.eql(150));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdrawal of 540 on 496825",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"496825{{runSuffix}}\",\n  \"amount\": -540\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is WITHDRAWAL\", () => pm.expect(movement.movementType).to.eql(\"WITHDRAWAL\"));",
+                  "pm.test(\"balance after the movement is 0\", () => pm.expect(movement.balance).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get movement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/movements/{{joseMovementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"amount is -575\", () => pm.expect(pm.response.json().amount).to.eql(-575));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List movements of account 478758",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/movements?accountNumber=478758{{runSuffix}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"one movement\", () => pm.expect(pm.response.json().totalElements).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit of 50 on 495878",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"495878{{runSuffix}}\",\n  \"amount\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is DEPOSIT\", () => pm.expect(movement.movementType).to.eql(\"DEPOSIT\"));",
+                  "pm.test(\"balance after the movement is 200\", () => pm.expect(movement.balance).to.eql(200));",
+                  "pm.collectionVariables.set(\"juanLastMovementId\", movement.movementId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Correct the last movement of 495878 (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements/{{juanLastMovementId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"amount corrected\", () => pm.expect(movement.amount).to.eql(25));",
+                  "pm.test(\"balance recalculated\", () => pm.expect(movement.balance).to.eql(175));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Account statement report (use case 5)",
+      "item": [
+        {
+          "name": "Account statement of Marianela Montalvo for today",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/reports?customerId={{marianelaId}}&startDate={{today}}&endDate={{today}}",
+            "description": "Dates use today in America/Guayaquil, the default time zone of the report."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const guayaquilNow = new Date(Date.now() - 5 * 60 * 60 * 1000);",
+                  "pm.collectionVariables.set(\"today\", guayaquilNow.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const report = pm.response.json();",
+                  "const suffix = pm.collectionVariables.get(\"runSuffix\");",
+                  "const byNumber = (number) => report.accounts.find((account) => account.accountNumber === number + suffix);",
+                  "pm.test(\"customer is Marianela Montalvo\", () => pm.expect(report.customer.name).to.eql(\"Marianela Montalvo\"));",
+                  "pm.test(\"two accounts\", () => pm.expect(report.accounts.length).to.eql(2));",
+                  "pm.test(\"225487: deposit of 600, balance 700\", () => {",
+                  "    const account = byNumber(\"225487\");",
+                  "    pm.expect(account.initialBalance).to.eql(100);",
+                  "    pm.expect(account.movements[0].amount).to.eql(600);",
+                  "    pm.expect(account.movements[0].balance).to.eql(700);",
+                  "});",
+                  "pm.test(\"496825: withdrawal of 540, balance 0\", () => {",
+                  "    const account = byNumber(\"496825\");",
+                  "    pm.expect(account.initialBalance).to.eql(540);",
+                  "    pm.expect(account.movements[0].amount).to.eql(-540);",
+                  "    pm.expect(account.movements[0].balance).to.eql(0);",
+                  "});",
+                  "pm.test(\"opening + deposits - withdrawals = closing\", () => report.accounts.forEach((account) =>",
+                  "    pm.expect(Math.round((account.openingBalance + account.totalDeposits - account.totalWithdrawals) * 100))",
+                  "        .to.eql(Math.round(account.closingBalance * 100))));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Error cases",
+      "item": [
+        {
+          "name": "Insufficient balance (F3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"496825{{runSuffix}}\",\n  \"amount\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"detail is \\\"Insufficient balance\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Insufficient balance\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid customer data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"gender\": \"MALE\",\n  \"age\": 17,\n  \"identification\": \"1\",\n  \"address\": \"x\",\n  \"phone\": \"abc\",\n  \"password\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"detail is \\\"Request validation failed\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Request validation failed\"));",
+                  "pm.test(\"error names the field age\", () => pm.expect(pm.response.json().errors.map((error) => error.field)).to.include(\"age\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown field in the body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jose Lema\",\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error names the field role\", () => pm.expect(pm.response.json().errors.map((error) => error.field)).to.include(\"role\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicated identification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{customerBaseUrl}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jose Lema\",\n  \"gender\": \"MALE\",\n  \"age\": 35,\n  \"identification\": \"1712345678{{runSuffix}}\",\n  \"address\": \"Otavalo sn y principal\",\n  \"phone\": \"098254785\",\n  \"password\": \"1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"detail is \\\"A customer with this identification already exists\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"A customer with this identification already exists\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Account for an unknown customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"999999{{runSuffix}}\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 10,\n  \"customerId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"detail is \\\"Customer does not exist or is not yet known by this service\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Customer does not exist or is not yet known by this service\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/accounts/999999{{runSuffix}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"detail is \\\"Account not found\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Account not found\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdrawal of 100 on 225487",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"225487{{runSuffix}}\",\n  \"amount\": -100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const movement = pm.response.json();",
+                  "pm.test(\"type is WITHDRAWAL\", () => pm.expect(movement.movementType).to.eql(\"WITHDRAWAL\"));",
+                  "pm.test(\"balance after the movement is 600\", () => pm.expect(movement.balance).to.eql(600));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Correct a movement that is not the last one",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements/{{marianelaDepositId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"detail is \\\"Only the last movement of an account can be corrected\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Only the last movement of an account can be corrected\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report with an invalid period",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/reports?customerId={{marianelaId}}&startDate=2026-10-31&endDate=2026-10-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error names the field endDate\", () => pm.expect(pm.response.json().errors.map((error) => error.field)).to.include(\"endDate\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Asynchronous flow: deleting a customer deactivates its accounts",
+      "item": [
+        {
+          "name": "Delete customer Juan Osorio",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{customerBaseUrl}}/api/v1/customers/{{juanId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Account 495878 becomes inactive",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/v1/accounts/495878{{runSuffix}}",
+            "description": "The CUSTOMER_DELETED event travels through Kafka; this request polls until the account is inactive."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = pm.collectionVariables.get(\"deletionAttempt\") || 0;",
+                  "if (attempt > 0) {",
+                  "    setTimeout(() => {}, 1000);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const attempt = Number(pm.collectionVariables.get(\"deletionAttempt\") || 0);",
+                  "if (pm.response.json().active === true && attempt < 15) {",
+                  "    pm.collectionVariables.set(\"deletionAttempt\", attempt + 1);",
+                  "    postman.setNextRequest(pm.info.requestName);",
+                  "} else {",
+                  "    pm.collectionVariables.unset(\"deletionAttempt\");",
+                  "    pm.test(\"account is inactive\", () => pm.expect(pm.response.json().active).to.eql(false));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted customer is gone",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{customerBaseUrl}}/api/v1/customers/{{juanId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"detail is \\\"Customer not found\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Customer not found\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No new accounts for a deleted customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/accounts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"888888{{runSuffix}}\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 10,\n  \"customerId\": \"{{juanId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"detail is \\\"Customer is not active\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Customer is not active\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No movements on an inactive account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/v1/movements",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"495878{{runSuffix}}\",\n  \"amount\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"detail is \\\"Account is not active\\\"\", () => pm.expect(pm.response.json().detail).to.eql(\"Account is not active\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "customerBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "accountBaseUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "runSuffix",
+      "value": ""
+    },
+    {
+      "key": "today",
+      "value": ""
+    },
+    {
+      "key": "joseId",
+      "value": ""
+    },
+    {
+      "key": "marianelaId",
+      "value": ""
+    },
+    {
+      "key": "juanId",
+      "value": ""
+    },
+    {
+      "key": "joseMovementId",
+      "value": ""
+    },
+    {
+      "key": "marianelaDepositId",
+      "value": ""
+    },
+    {
+      "key": "juanLastMovementId",
+      "value": ""
+    }
+  ]
+}
