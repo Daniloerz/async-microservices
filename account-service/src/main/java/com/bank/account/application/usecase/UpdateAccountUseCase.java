@@ -23,7 +23,7 @@ public class UpdateAccountUseCase {
     public Account update(String accountNumber, AccountChanges changes) {
         Account account = accountRepository.findForUpdate(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException(accountNumber));
-        CustomerSnapshot owner = customerSnapshotRepository.findById(account.getCustomerId())
+        CustomerSnapshot owner = customerSnapshotRepository.findWithSharedLock(account.getCustomerId())
                 .orElseThrow(() -> new IllegalStateException("Account owner is missing from the customer projection"));
 
         account.apply(changes, owner);

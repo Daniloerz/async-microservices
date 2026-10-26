@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -69,9 +70,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException exception,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         List<FieldErrorResponse> errors = exception.getParameterValidationResults().stream()
-                .flatMap(result -> result.getResolvableErrors().stream()
-                        .map(error -> new FieldErrorResponse(result.getMethodParameter().getParameterName(),
-                                messageOf(error))))
+                .flatMap(result -> result instanceof ParameterErrors bodyErrors
+                        ? bodyErrors.getFieldErrors().stream()
+                                .map(error -> new FieldErrorResponse(error.getField(), messageOf(error)))
+                        : result.getResolvableErrors().stream()
+                                .map(error -> new FieldErrorResponse(result.getMethodParameter().getParameterName(),
+                                        messageOf(error))))
                 .toList();
         return badRequest(VALIDATION_FAILED, errors);
     }

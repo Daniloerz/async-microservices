@@ -22,7 +22,7 @@ public class DeleteCustomerUseCase {
 
     @Transactional
     public void delete(UUID customerId) {
-        Customer customer = customerRepository.findByCustomerId(customerId)
+        Customer customer = customerRepository.findForUpdate(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
         customerRepository.delete(customer);
         customerEventPublisher.publish(CustomerEventType.CUSTOMER_DELETED, customer);

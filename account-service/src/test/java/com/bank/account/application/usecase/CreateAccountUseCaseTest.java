@@ -47,7 +47,7 @@ class CreateAccountUseCaseTest {
 
     @Test
     void accountIsOpenedForAnActiveCustomer() {
-        when(customerSnapshotRepository.findForAccountOpening(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
         when(accountRepository.existsByAccountNumber("478758")).thenReturn(false);
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -60,7 +60,7 @@ class CreateAccountUseCaseTest {
 
     @Test
     void unknownCustomerIsRejected() {
-        when(customerSnapshotRepository.findForAccountOpening(CUSTOMER_ID)).thenReturn(Optional.empty());
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> createAccountUseCase.create("478758", AccountType.SAVINGS, INITIAL_BALANCE,
                 CUSTOMER_ID, true))
@@ -72,7 +72,7 @@ class CreateAccountUseCaseTest {
 
     @Test
     void inactiveCustomerIsRejected() {
-        when(customerSnapshotRepository.findForAccountOpening(CUSTOMER_ID)).thenReturn(Optional.of(owner(false)));
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.of(owner(false)));
 
         assertThatThrownBy(() -> createAccountUseCase.create("478758", AccountType.SAVINGS, INITIAL_BALANCE,
                 CUSTOMER_ID, true))
@@ -84,7 +84,7 @@ class CreateAccountUseCaseTest {
 
     @Test
     void duplicatedAccountNumberIsRejected() {
-        when(customerSnapshotRepository.findForAccountOpening(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
         when(accountRepository.existsByAccountNumber("478758")).thenReturn(true);
 
         assertThatThrownBy(() -> createAccountUseCase.create("478758", AccountType.SAVINGS, INITIAL_BALANCE,

@@ -23,7 +23,7 @@ public class CustomerSnapshotPersistenceAdapter implements CustomerSnapshotRepos
     }
 
     @Override
-    public Optional<CustomerSnapshot> findForAccountOpening(UUID customerId) {
+    public Optional<CustomerSnapshot> findWithSharedLock(UUID customerId) {
         return customerSnapshotJpaRepository.findWithSharedLock(customerId).map(customerSnapshotEntityMapper::toDomain);
     }
 

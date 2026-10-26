@@ -242,8 +242,10 @@ data other services need: no identification, contact data or password.
 | `CUSTOMER_DELETED` | Marks the customer inactive and deactivates all its accounts |
 
 - A repeated event (same `eventId`) is ignored; an event older than the last one applied is ignored.
-- Invalid messages go straight to `customer-events.DLT`; other failures are retried 3 times (1 s
-  apart) and then sent to the same dead-letter topic.
+- Invalid messages and data errors that can never succeed go straight to `customer-events.DLT`.
+  Temporary failures (for example the database is restarting) are retried with an exponential
+  back-off (1 s, 2 s, 4 s … up to 60 s, 10 retries, about 5 minutes) before reaching the
+  dead-letter topic; the partition waits meanwhile, so the order of events is kept.
 
 ```bash
 docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
@@ -317,8 +319,9 @@ infrastructure).
 | `OUTBOX_SEND_TIMEOUT` | Maximum wait for the broker per event (customer-service) | `10s` |
 | `KAFKA_CONSUMER_GROUP` | Consumer group (account-service) | `account-service` |
 | `CUSTOMER_EVENTS_DLT` | Dead-letter topic (account-service) | `customer-events.DLT` |
-| `CUSTOMER_EVENTS_RETRY_ATTEMPTS` | Retries before sending a message to the DLT (account-service) | `3` |
-| `CUSTOMER_EVENTS_RETRY_INTERVAL` | Pause between retries (account-service) | `1s` |
+| `CUSTOMER_EVENTS_RETRY_ATTEMPTS` | Retries of a temporary failure before the DLT (account-service) | `10` |
+| `CUSTOMER_EVENTS_RETRY_INTERVAL` | First pause between retries; it doubles each time (account-service) | `1s` |
+| `CUSTOMER_EVENTS_RETRY_MAX_INTERVAL` | Longest pause between retries (account-service) | `60s` |
 | `REPORT_TIME_ZONE` | Time zone used to cut report days (account-service) | `America/Guayaquil` |
 | `REPORT_MAX_RANGE_DAYS` | Longest report period in days (account-service) | `366` |
 

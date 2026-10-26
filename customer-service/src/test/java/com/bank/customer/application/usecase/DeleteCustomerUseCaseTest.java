@@ -47,7 +47,7 @@ class DeleteCustomerUseCaseTest {
         Customer customer = Customer.create(
                 new CustomerDetails("Juan Osorio", Gender.MALE, 40, "1700000003", "13 junio y Equinoccial", "098874587"),
                 "$2a$10$hash", true);
-        when(customerRepository.findByCustomerId(customer.getCustomerId())).thenReturn(Optional.of(customer));
+        when(customerRepository.findForUpdate(customer.getCustomerId())).thenReturn(Optional.of(customer));
 
         deleteCustomerUseCase.delete(customer.getCustomerId());
 
@@ -59,7 +59,7 @@ class DeleteCustomerUseCaseTest {
     @Test
     void unknownCustomerIsReportedAsNotFound() {
         UUID unknownCustomerId = UUID.randomUUID();
-        when(customerRepository.findByCustomerId(unknownCustomerId)).thenReturn(Optional.empty());
+        when(customerRepository.findForUpdate(unknownCustomerId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> deleteCustomerUseCase.delete(unknownCustomerId))
                 .isInstanceOf(CustomerNotFoundException.class);

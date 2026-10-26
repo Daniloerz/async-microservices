@@ -49,7 +49,7 @@ class UpdateAccountUseCaseTest {
     void changesAreAppliedAndSaved() {
         Account account = Account.open("478758", AccountType.SAVINGS, new BigDecimal("2000.00"), CUSTOMER_ID, true);
         when(accountRepository.findForUpdate("478758")).thenReturn(Optional.of(account));
-        when(customerSnapshotRepository.findById(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.of(owner(true)));
         when(accountRepository.save(account)).thenReturn(account);
 
         Account updated = updateAccountUseCase.update("478758", new AccountChanges(AccountType.CHECKING, false));
@@ -62,7 +62,7 @@ class UpdateAccountUseCaseTest {
     void activationIsRejectedWhileTheOwnerIsInactive() {
         Account account = Account.open("478758", AccountType.SAVINGS, new BigDecimal("2000.00"), CUSTOMER_ID, false);
         when(accountRepository.findForUpdate("478758")).thenReturn(Optional.of(account));
-        when(customerSnapshotRepository.findById(CUSTOMER_ID)).thenReturn(Optional.of(owner(false)));
+        when(customerSnapshotRepository.findWithSharedLock(CUSTOMER_ID)).thenReturn(Optional.of(owner(false)));
 
         assertThatThrownBy(() -> updateAccountUseCase.update("478758", new AccountChanges(null, true)))
                 .isInstanceOf(AccountActivationNotAllowedException.class);

@@ -11,6 +11,8 @@ public interface CustomerRepository {
 
     Optional<Customer> findByCustomerId(UUID customerId);
 
+    Optional<Customer> findForUpdate(UUID customerId);
+
     PageResult<Customer> findAll(int page, int size);
 
     boolean existsByIdentification(String identification);

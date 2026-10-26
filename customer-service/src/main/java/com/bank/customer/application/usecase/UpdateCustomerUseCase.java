@@ -26,7 +26,7 @@ public class UpdateCustomerUseCase {
 
     @Transactional
     public Customer update(UUID customerId, CustomerChanges changes, String newPassword) {
-        Customer customer = customerRepository.findByCustomerId(customerId)
+        Customer customer = customerRepository.findForUpdate(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
         if (changes.identification() != null

@@ -13,12 +13,16 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record PatchCustomerRequest(
-        @Size(min = 1, max = 100, message = ValidationMessages.SIZE_1_100) String name,
+        @Size(min = 1, max = 100, message = ValidationMessages.SIZE_1_100)
+        @Pattern(regexp = ValidationMessages.NOT_BLANK_PATTERN, message = ValidationMessages.NOT_BLANK)
+        String name,
         Gender gender,
         @Min(ValidationMessages.MIN_AGE) @Max(ValidationMessages.MAX_AGE) Integer age,
         @Pattern(regexp = ValidationMessages.IDENTIFICATION_PATTERN, message = ValidationMessages.IDENTIFICATION)
         String identification,
-        @Size(min = 1, max = 200, message = ValidationMessages.SIZE_1_200) String address,
+        @Size(min = 1, max = 200, message = ValidationMessages.SIZE_1_200)
+        @Pattern(regexp = ValidationMessages.NOT_BLANK_PATTERN, message = ValidationMessages.NOT_BLANK)
+        String address,
         @Pattern(regexp = ValidationMessages.PHONE_PATTERN, message = ValidationMessages.PHONE) String phone,
         @Schema(accessMode = Schema.AccessMode.WRITE_ONLY) @PasswordLength String password,
         Boolean active) {

@@ -98,6 +98,18 @@ class ReportControllerTest {
     }
 
     @Test
+    void extremeDateIsParsedAndPassedToTheUseCase() throws Exception {
+        LocalDate farFuture = LocalDate.parse("+999999999-12-31");
+        when(generateAccountStatementUseCase.generate(CUSTOMER_ID, farFuture, farFuture))
+                .thenThrow(new InvalidReportPeriodException("startDate", "must be between 1900-01-01 and 9999-12-31"));
+
+        mockMvc.perform(get(REPORTS_URL).param("customerId", CUSTOMER_ID.toString())
+                        .param("startDate", "+999999999-12-31").param("endDate", "+999999999-12-31"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("startDate"));
+    }
+
+    @Test
     void unknownCustomerReturns404() throws Exception {
         when(generateAccountStatementUseCase.generate(CUSTOMER_ID, DAY, DAY))
                 .thenThrow(new CustomerNotFoundException(CUSTOMER_ID));

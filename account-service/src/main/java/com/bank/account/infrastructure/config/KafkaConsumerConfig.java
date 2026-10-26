@@ -8,14 +8,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
 import com.bank.account.infrastructure.messaging.InvalidCustomerEventException;
 
 @Configuration
 @EnableConfigurationProperties(CustomerEventsProperties.class)
 public class KafkaConsumerConfig {
+
+    private static final double BACK_OFF_MULTIPLIER = 2.0;
 
     @Bean
     NewTopic customerEventsTopic(CustomerEventsProperties properties) {
@@ -38,9 +41,12 @@ public class KafkaConsumerConfig {
             CustomerEventsProperties properties) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
                 (consumerRecord, exception) -> new TopicPartition(properties.deadLetterTopic(), consumerRecord.partition()));
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer,
-                new FixedBackOff(properties.retryInterval().toMillis(), properties.retryAttempts()));
-        errorHandler.addNotRetryableExceptions(InvalidCustomerEventException.class);
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(properties.retryAttempts());
+        backOff.setInitialInterval(properties.retryInterval().toMillis());
+        backOff.setMultiplier(BACK_OFF_MULTIPLIER);
+        backOff.setMaxInterval(properties.retryMaxInterval().toMillis());
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+        errorHandler.addNotRetryableExceptions(InvalidCustomerEventException.class, DataIntegrityViolationException.class);
         return errorHandler;
     }
 }

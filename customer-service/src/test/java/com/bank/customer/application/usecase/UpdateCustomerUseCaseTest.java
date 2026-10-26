@@ -56,7 +56,7 @@ class UpdateCustomerUseCaseTest {
     @Test
     void partialUpdateChangesOnlyProvidedFieldsAndPublishesUpdatedEvent() {
         UUID customerId = existingCustomer.getCustomerId();
-        when(customerRepository.findByCustomerId(customerId)).thenReturn(Optional.of(existingCustomer));
+        when(customerRepository.findForUpdate(customerId)).thenReturn(Optional.of(existingCustomer));
         when(customerRepository.save(existingCustomer)).thenReturn(existingCustomer);
 
         Customer updated = updateCustomerUseCase.update(customerId, onlyActive(false), null);
@@ -71,7 +71,7 @@ class UpdateCustomerUseCaseTest {
     @Test
     void newPasswordIsHashedBeforeSaving() {
         UUID customerId = existingCustomer.getCustomerId();
-        when(customerRepository.findByCustomerId(customerId)).thenReturn(Optional.of(existingCustomer));
+        when(customerRepository.findForUpdate(customerId)).thenReturn(Optional.of(existingCustomer));
         when(passwordHasher.hash("5678")).thenReturn("$2a$10$newHash");
         when(customerRepository.save(existingCustomer)).thenReturn(existingCustomer);
 
@@ -83,7 +83,7 @@ class UpdateCustomerUseCaseTest {
     @Test
     void identificationUsedByAnotherCustomerIsRejected() {
         UUID customerId = existingCustomer.getCustomerId();
-        when(customerRepository.findByCustomerId(customerId)).thenReturn(Optional.of(existingCustomer));
+        when(customerRepository.findForUpdate(customerId)).thenReturn(Optional.of(existingCustomer));
         when(customerRepository.existsByIdentificationForOtherCustomer("0999999999", customerId)).thenReturn(true);
         CustomerChanges changes = new CustomerChanges(null, null, null, "0999999999", null, null, null);
 
@@ -97,7 +97,7 @@ class UpdateCustomerUseCaseTest {
     @Test
     void unknownCustomerIsReportedAsNotFound() {
         UUID unknownCustomerId = UUID.randomUUID();
-        when(customerRepository.findByCustomerId(unknownCustomerId)).thenReturn(Optional.empty());
+        when(customerRepository.findForUpdate(unknownCustomerId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> updateCustomerUseCase.update(unknownCustomerId, onlyActive(false), null))
                 .isInstanceOf(CustomerNotFoundException.class);

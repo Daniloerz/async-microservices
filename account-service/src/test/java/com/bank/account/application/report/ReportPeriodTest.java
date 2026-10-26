@@ -42,6 +42,22 @@ class ReportPeriodTest {
     }
 
     @Test
+    void datesOutsideTheSupportedRangeAreRejectedInsteadOfFailing() {
+        assertThatThrownBy(() -> ReportPeriod.of(LocalDate.MAX.minusDays(10), LocalDate.MAX, GUAYAQUIL, MAX_RANGE_DAYS))
+                .isInstanceOf(InvalidReportPeriodException.class)
+                .hasMessage("must be between 1900-01-01 and 9999-12-31")
+                .extracting("field").isEqualTo("startDate");
+        assertThatThrownBy(() -> ReportPeriod.of(LocalDate.of(9999, 12, 30), LocalDate.of(10000, 1, 2),
+                GUAYAQUIL, MAX_RANGE_DAYS))
+                .isInstanceOf(InvalidReportPeriodException.class)
+                .extracting("field").isEqualTo("endDate");
+        assertThatThrownBy(() -> ReportPeriod.of(LocalDate.parse("1899-12-31"), LocalDate.parse("1900-01-02"),
+                GUAYAQUIL, MAX_RANGE_DAYS))
+                .isInstanceOf(InvalidReportPeriodException.class)
+                .extracting("field").isEqualTo("startDate");
+    }
+
+    @Test
     void periodUpToTheMaximumIsAcceptedAndLongerIsRejected() {
         LocalDate start = LocalDate.parse("2026-01-01");
 

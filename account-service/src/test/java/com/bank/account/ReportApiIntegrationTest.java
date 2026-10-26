@@ -117,12 +117,15 @@ class ReportApiIntegrationTest {
     }
 
     @Test
-    void periodUpToTheMaximumIsAcceptedAndLongerIsRejected() throws Exception {
+    void periodUpToTheMaximumIsAcceptedAndLongerOrOutOfRangeIsRejected() throws Exception {
         mockMvc.perform(get("/api/v1/reports").param("customerId", customerId.toString())
                         .param("startDate", "2025-01-01").param("endDate", "2026-01-01"))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/v1/reports").param("customerId", customerId.toString())
                         .param("startDate", "2025-01-01").param("endDate", "2026-01-02"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/reports").param("customerId", customerId.toString())
+                        .param("startDate", "+999999999-12-01").param("endDate", "+999999999-12-31"))
                 .andExpect(status().isBadRequest());
     }
 

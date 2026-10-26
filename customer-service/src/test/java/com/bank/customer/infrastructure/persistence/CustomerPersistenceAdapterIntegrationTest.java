@@ -87,6 +87,23 @@ class CustomerPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    void customerLoadedForUpdateCannotBeDeletedConcurrently() {
+        Customer saved = customerPersistenceAdapter.save(newCustomer("Jose Lema", "1712345678"));
+
+        transactionTemplate.executeWithoutResult(status -> {
+            assertThat(customerPersistenceAdapter.findForUpdate(saved.getCustomerId())).isPresent();
+
+            assertThatThrownBy(() -> CompletableFuture.runAsync(() -> transactionTemplate.executeWithoutResult(other -> {
+                jdbcTemplate.execute("SET LOCAL lock_timeout = '500ms'");
+                jdbcTemplate.update("DELETE FROM person WHERE id = ?", saved.getId());
+            })).join())
+                    .rootCause().hasMessageContaining("canceling statement due to lock timeout");
+        });
+
+        assertThat(customerPersistenceAdapter.findByCustomerId(saved.getCustomerId())).isPresent();
+    }
+
+    @Test
     void duplicatedIdentificationIsTranslatedToABusinessException() {
         customerPersistenceAdapter.save(newCustomer("Jose Lema", "1712345678"));
 

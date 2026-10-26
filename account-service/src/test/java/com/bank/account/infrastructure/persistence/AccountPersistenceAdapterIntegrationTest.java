@@ -20,6 +20,7 @@ import com.bank.account.TestcontainersConfiguration;
 import com.bank.account.application.exception.CustomerNotAvailableException;
 import com.bank.account.application.exception.DuplicateAccountNumberException;
 import com.bank.account.application.port.out.PageResult;
+import com.bank.account.application.usecase.UpdateAccountUseCase;
 import com.bank.account.domain.model.Account;
 import com.bank.account.domain.model.AccountChanges;
 import com.bank.account.domain.model.AccountType;
@@ -46,6 +47,9 @@ class AccountPersistenceAdapterIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private UpdateAccountUseCase updateAccountUseCase;
+
     private UUID customerId;
 
     @BeforeEach
@@ -68,7 +72,7 @@ class AccountPersistenceAdapterIntegrationTest {
     @Test
     void snapshotCanBeReadWithASharedLockForAccountOpening() {
         CustomerSnapshot snapshot = transactionTemplate.execute(status ->
-                customerSnapshotPersistenceAdapter.findForAccountOpening(customerId).orElseThrow());
+                customerSnapshotPersistenceAdapter.findWithSharedLock(customerId).orElseThrow());
 
         assertThat(snapshot.name()).isEqualTo("Jose Lema");
     }
@@ -166,6 +170,22 @@ class AccountPersistenceAdapterIntegrationTest {
     }
 
     @Test
+    void updatingAnAccountHoldsTheOwnerSnapshotUntilCommit() {
+        accountPersistenceAdapter.save(Account.open("478758", AccountType.SAVINGS, BigDecimal.TEN, customerId, false));
+
+        transactionTemplate.executeWithoutResult(status -> {
+            updateAccountUseCase.update("478758", new AccountChanges(null, true));
+
+            assertThatThrownBy(() -> runInAnotherTransaction(
+                    "UPDATE customer_snapshot SET active = false WHERE customer_id = ?", customerId))
+                    .rootCause().hasMessageContaining("canceling statement due to lock timeout");
+        });
+
+        assertThat(accountPersistenceAdapter.findByAccountNumber("478758")).get()
+                .extracting(Account::isActive).isEqualTo(true);
+    }
+
+    @Test
     void eventIsMarkedAsProcessedOnlyOnce() {
         UUID eventId = UUID.randomUUID();
 
@@ -177,9 +197,13 @@ class AccountPersistenceAdapterIntegrationTest {
     }
 
     private void changeInAnotherTransaction(String accountNumber) {
+        runInAnotherTransaction("UPDATE account SET active = false WHERE account_number = ?", accountNumber);
+    }
+
+    private void runInAnotherTransaction(String sql, Object parameter) {
         CompletableFuture.runAsync(() -> transactionTemplate.executeWithoutResult(status -> {
             jdbcTemplate.execute("SET LOCAL lock_timeout = '500ms'");
-            jdbcTemplate.update("UPDATE account SET active = false WHERE account_number = ?", accountNumber);
+            jdbcTemplate.update(sql, parameter);
         })).join();
     }
 }

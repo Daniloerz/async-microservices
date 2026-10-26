@@ -53,6 +53,11 @@ public class CustomerPersistenceAdapter implements CustomerRepository {
     }
 
     @Override
+    public Optional<Customer> findForUpdate(UUID customerId) {
+        return customerJpaRepository.findWithWriteLock(customerId).map(customerEntityMapper::toDomain);
+    }
+
+    @Override
     public PageResult<Customer> findAll(int page, int size) {
         Page<CustomerEntity> result = customerJpaRepository.findAll(PageRequest.of(page, size, BY_NAME));
         return new PageResult<>(result.getContent(), page, size, result.getTotalElements(), result.getTotalPages())

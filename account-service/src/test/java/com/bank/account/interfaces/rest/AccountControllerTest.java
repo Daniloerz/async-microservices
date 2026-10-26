@@ -195,6 +195,24 @@ class AccountControllerTest {
     }
 
     @Test
+    void putWithAnInvalidBodyNamesTheBodyField() throws Exception {
+        mockMvc.perform(put(ACCOUNTS_URL + "/478758").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"accountType\": null, \"active\": true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("accountType"))
+                .andExpect(jsonPath("$.errors[0].message").value("must not be null"));
+
+        verifyNoInteractions(updateAccountUseCase);
+    }
+
+    @Test
+    void patchWithEmptyBodyNamesTheCheckedField() throws Exception {
+        mockMvc.perform(patch(ACCOUNTS_URL + "/478758").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("anyFieldPresent"));
+    }
+
+    @Test
     void putCannotChangeTheInitialBalance() throws Exception {
         mockMvc.perform(put(ACCOUNTS_URL + "/478758").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"accountType\": \"CHECKING\", \"active\": true, \"initialBalance\": 10}"))

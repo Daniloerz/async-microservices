@@ -9,7 +9,7 @@ public interface CustomerSnapshotRepository {
 
     Optional<CustomerSnapshot> findById(UUID customerId);
 
-    Optional<CustomerSnapshot> findForAccountOpening(UUID customerId);
+    Optional<CustomerSnapshot> findWithSharedLock(UUID customerId);
 
     void save(CustomerSnapshot snapshot);
 }

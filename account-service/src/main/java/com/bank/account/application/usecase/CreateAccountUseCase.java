@@ -26,7 +26,7 @@ public class CreateAccountUseCase {
     @Transactional
     public Account create(String accountNumber, AccountType accountType, BigDecimal initialBalance,
             UUID customerId, boolean active) {
-        CustomerSnapshot owner = customerSnapshotRepository.findForAccountOpening(customerId)
+        CustomerSnapshot owner = customerSnapshotRepository.findWithSharedLock(customerId)
                 .orElseThrow(CustomerNotAvailableException::unknown);
         if (!owner.active()) {
             throw CustomerNotAvailableException.inactive();

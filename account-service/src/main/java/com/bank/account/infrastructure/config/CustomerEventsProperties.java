@@ -17,6 +17,7 @@ public record CustomerEventsProperties(
         @NotBlank String deadLetterTopic,
         @Positive int partitions,
         @Positive int replicas,
-        @PositiveOrZero long retryAttempts,
-        @NotNull Duration retryInterval) {
+        @PositiveOrZero int retryAttempts,
+        @NotNull Duration retryInterval,
+        @NotNull Duration retryMaxInterval) {
 }

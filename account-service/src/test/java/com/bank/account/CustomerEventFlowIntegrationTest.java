@@ -106,7 +106,7 @@ class CustomerEventFlowIntegrationTest {
     }
 
     @Test
-    void messageThatKeepsFailingIsRetriedAndThenSentToTheDeadLetterTopic() {
+    void permanentDataErrorGoesStraightToTheDeadLetterTopic() {
         UUID customerId = UUID.randomUUID();
         String tooLongName = "x".repeat(101);
 

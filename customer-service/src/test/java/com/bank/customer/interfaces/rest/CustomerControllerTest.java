@@ -275,6 +275,18 @@ class CustomerControllerTest {
     }
 
     @Test
+    void patchWithOnlySpacesIsRejected() throws Exception {
+        mockMvc.perform(patch(CUSTOMERS_URL + "/" + CUSTOMER_ID).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"   \", \"address\": \" \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field", hasItem("name")))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("address")))
+                .andExpect(jsonPath("$.errors[*].message", hasItem("must not be blank")));
+
+        verifyNoInteractions(updateCustomerUseCase);
+    }
+
+    @Test
     void patchOfUnknownCustomerReturns404() throws Exception {
         when(updateCustomerUseCase.update(eq(CUSTOMER_ID), any(CustomerChanges.class), eq("5678")))
                 .thenThrow(new CustomerNotFoundException(CUSTOMER_ID));
